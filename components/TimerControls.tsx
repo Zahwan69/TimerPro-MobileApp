@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Button, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 
 interface TimerControlsProps {
   isRunning: boolean;

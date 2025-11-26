@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, Button, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
-import useTimerStore, { TimerCategory } from '../../store/useTimerStore';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import useTimerStore, {  } from '../../store/useTimerStore';
 import TimerControls from '../../components/TimerControls';
 import TimerDisplay from '../../components/TimerDisplay';
 import CategoryManagementModal from '../../components/CategoryManagementModal';
@@ -36,25 +36,26 @@ export default function TimerScreen() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
+    // 1. Declare the interval handle in the outer scope
+    let interval: ReturnType<typeof setInterval> | null = null;
 
     if (isRunning) {
-      const startTime = Date.now() - timeElapsed; // Account for time already passed (for accurate display)
-      
-      interval = setInterval(() => {
-        useTimerStore.setState({ timeElapsed: Date.now() - startTime });
-      }, 10); // Update every 10ms for smooth millisecond display
-    } else if (!isRunning && timeElapsed !== 0) {
-      let interval: NodeJS.Timeout | null = null;
-    }
+        const startTime = Date.now() - timeElapsed;
+        
+        interval = setInterval(() => {
+            // Update the time in the Zustand store
+            useTimerStore.setState({ timeElapsed: Date.now() - startTime });
+        }, 10);
+    } 
+    // 2. The problematic 'else if' block is removed as it's not needed.
 
+    // 3. Cleanup function runs when the component unmounts OR when 'isRunning' changes
     return () => {
-      // Check if interval was actually set (it's not null) before clearing it
-      if (interval !== null) {
-          clearInterval(interval); 
-      }
+        if (interval !== null) {
+            clearInterval(interval);
+        }
     };
-  }, [isRunning, timeElapsed]);
+}, [isRunning, timeElapsed]);
 
   return (
     <View style={styles.container}>

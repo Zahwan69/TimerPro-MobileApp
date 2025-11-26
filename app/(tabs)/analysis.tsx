@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { Stack } from 'expo-router';
-import useTimerStore, { TimerRecord, TimerCategory } from '../../store/useTimerStore';
+import useTimerStore, { TimerRecord,  } from '../../store/useTimerStore';
 import RecordVisualization from '../../components/RecordVisualization'; // To be created next
 import TransferRecordModal from '../../components/TransferRecordModal'; // To be created next
 
