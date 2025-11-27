@@ -54,10 +54,11 @@ export interface TimerState {
   deleteCategory: (id: string) => void;
   setCurrentCategory: (category: TimerCategory) => void; // 👈 Explicit Types
   
-  startTimer: (category: TimerCategory) => void; // 👈 Explicit Types
+  startTimer: (category: TimerCategory | null) => void; // 👈 Explicit Types
   pauseTimer: () => void;
   addLap: () => void;
   resetTimer: () => void;
+  saveTimer: (categoryName: string) => void; // Save timer with category name without resetting
 
   deleteRecord: (id: string) => void; // 👈 Explicit Types
   transferRecord: (recordId: string, newCategory: TimerCategory) => void;
@@ -105,9 +106,9 @@ const useTimerStore = create<TimerState>()(
 
       // --- Timer Control Actions ---
       startTimer: (category) => {
-          if (!get().isRunning && category) {
+          if (!get().isRunning) {
               if (get().timeElapsed === 0) {
-                  set({ currentCategory: category, isRunning: true, currentLaps: [] });
+                  set({ currentCategory: category || null, isRunning: true, currentLaps: [] });
               } else {
                   set({ isRunning: true });
               }
@@ -122,29 +123,47 @@ const useTimerStore = create<TimerState>()(
           }
           return state;
       }),
-      resetTimer: () => {
+      saveTimer: (categoryName) => {
           const state = get();
-          if (state.timeElapsed > 0 && state.currentCategory) {
-              const finalRecord: TimerRecord = {
-                  id: Date.now().toString(), categoryId: state.currentCategory.id, categoryName: state.currentCategory.name,
-                  startTime: Date.now() - state.timeElapsed, stopTime: Date.now(), durationMs: state.timeElapsed, laps: state.currentLaps,
-                  isPersonalBest: false, 
-              };
+          if (state.timeElapsed > 0 && !state.isRunning) {
+              // Find or create category
+              let category = state.categories.find(cat => cat.name.toLowerCase() === categoryName.trim().toLowerCase());
               let updatedCategories = state.categories;
               
-              if (!state.currentCategory.personalBestMs || state.timeElapsed < state.currentCategory.personalBestMs) {
+              if (!category) {
+                  // Create new category
+                  category = { id: Date.now().toString(), name: categoryName.trim(), personalBestMs: null, createdAt: Date.now() };
+                  updatedCategories = [...state.categories, category];
+              }
+              
+              const finalRecord: TimerRecord = {
+                  id: Date.now().toString(), 
+                  categoryId: category.id, 
+                  categoryName: category.name,
+                  startTime: Date.now() - state.timeElapsed, 
+                  stopTime: Date.now(), 
+                  durationMs: state.timeElapsed, 
+                  laps: state.currentLaps,
+                  isPersonalBest: false, 
+              };
+              
+              // Update PB if needed
+              if (!category.personalBestMs || state.timeElapsed < category.personalBestMs) {
                   finalRecord.isPersonalBest = true;
-                  updatedCategories = state.categories.map(cat => 
-                      cat.id === state.currentCategory?.id ? { ...cat, personalBestMs: state.timeElapsed } : cat
+                  updatedCategories = updatedCategories.map(cat => 
+                      cat.id === category.id ? { ...cat, personalBestMs: state.timeElapsed } : cat
                   );
               }
 
               set({
-                  isRunning: false, timeElapsed: 0, currentLaps: [], categories: updatedCategories, records: [...state.records, finalRecord],
+                  categories: updatedCategories, 
+                  records: [...state.records, finalRecord],
+                  currentCategory: updatedCategories.find(cat => cat.id === category.id) || category,
               });
-          } else {
-              set({ isRunning: false, timeElapsed: 0, currentLaps: [] });
           }
+      },
+      resetTimer: () => {
+          set({ isRunning: false, timeElapsed: 0, currentLaps: [], currentCategory: null });
       },
 
       // --- Record CRUD / Update Actions ---

@@ -41,10 +41,11 @@ export interface TimerState {
   deleteCategory: (id: string) => void;
   setCurrentCategory: (category: TimerCategory) => void;
   
-  startTimer: (category: TimerCategory) => void;
+  startTimer: (category: TimerCategory | null) => void;
   pauseTimer: () => void;
   addLap: () => void;
   resetTimer: () => void;
+  saveTimer: (categoryName: string) => void;
 
   deleteRecord: (id: string) => void;
   transferRecord: (recordId: string, newCategory: TimerCategory) => void; // CORRECTED

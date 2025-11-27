@@ -7,6 +7,7 @@ interface TimerControlsProps {
   isDisabled: boolean;
   onStart: () => void;
   onPause: () => void;
+  onStop: () => void;
   onReset: () => void;
   onLap: () => void;
 }
@@ -17,6 +18,7 @@ const TimerControls: React.FC<TimerControlsProps> = ({
   isDisabled,
   onStart, 
   onPause, 
+  onStop,
   onReset, 
   onLap 
 }) => {
@@ -29,20 +31,23 @@ const TimerControls: React.FC<TimerControlsProps> = ({
     );
   }
 
+  const showStopButton = !isRunning && timeElapsed > 0;
+  const showLapButton = isRunning && timeElapsed > 0;
+
   return (
     <View style={styles.controlContainer}>
-      {/* Button Row 1 (Lap/Reset) */}
+      {/* Left Button: Reset or Lap */}
       <TouchableOpacity 
         style={[styles.button, styles.secondaryButton]} 
-        onPress={timeElapsed === 0 ? onReset : onLap}
-        disabled={isRunning && timeElapsed === 0} // Can't lap until timer has some time
+        onPress={showLapButton ? onLap : onReset}
+        disabled={isRunning && timeElapsed === 0}
       >
         <Text style={styles.secondaryButtonText}>
-          {timeElapsed > 0 && isRunning ? 'Lap' : 'Reset'}
+          {showLapButton ? 'Lap' : 'Reset'}
         </Text>
       </TouchableOpacity>
       
-      {/* Button Row 2 (Start/Pause) */}
+      {/* Center Button: Start/Pause */}
       <TouchableOpacity 
         style={[styles.button, isRunning ? styles.pauseButton : styles.startButton]} 
         onPress={isRunning ? onPause : onStart}
@@ -51,6 +56,18 @@ const TimerControls: React.FC<TimerControlsProps> = ({
           {isRunning ? 'Pause' : (timeElapsed > 0 ? 'Resume' : 'Start')}
         </Text>
       </TouchableOpacity>
+
+      {/* Right Button: Stop (when paused) or placeholder */}
+      {showStopButton ? (
+        <TouchableOpacity 
+          style={[styles.button, styles.stopButton]} 
+          onPress={onStop}
+        >
+          <Text style={styles.primaryButtonText}>Stop</Text>
+        </TouchableOpacity>
+      ) : (
+        <View style={[styles.button, styles.placeholderButton]} />
+      )}
     </View>
   );
 };
@@ -59,34 +76,42 @@ const styles = StyleSheet.create({
   controlContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+    alignItems: 'center',
     width: '100%',
     marginVertical: 30,
+    paddingHorizontal: 10,
   },
   button: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: 10,
+    marginHorizontal: 5,
   },
   startButton: {
     backgroundColor: '#34C759', // iOS Green
   },
   pauseButton: {
+    backgroundColor: '#FF9500', // iOS Orange
+  },
+  stopButton: {
     backgroundColor: '#FF3B30', // iOS Red
   },
   secondaryButton: {
     backgroundColor: '#E5E5EA', // Light gray
   },
+  placeholderButton: {
+    backgroundColor: 'transparent',
+  },
   primaryButtonText: {
     color: 'white',
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
   },
   secondaryButtonText: {
     color: '#000',
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '500',
   },
   disabledText: {
