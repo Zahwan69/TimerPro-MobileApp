@@ -4,16 +4,17 @@ import { View, StyleSheet, Dimensions, Text } from 'react-native';
 interface RecordVisualizationProps {
     durationMs: number;
     lapTimes: number[];
+    bestLapIndex?: number | null;
 }
 
 // Fixed width for the visualization bars (to ensure consistent look across records)
 const BAR_WIDTH = Dimensions.get('window').width - 70; 
 const BAR_HEIGHT = 15;
 
-const RecordVisualization: React.FC<RecordVisualizationProps> = ({ durationMs, lapTimes }) => {
+const RecordVisualization: React.FC<RecordVisualizationProps> = ({ durationMs, lapTimes, bestLapIndex }) => {
     if (durationMs === 0) return null;
 
-    // Calculate cumulative time for lap markers
+    // Calculate cumulative time for lap markers (each lap in `lapTimes` is a lap duration)
     const cumulativeLaps = lapTimes.reduce((acc: number[], lap: number) => {
         const lastTime = acc.length > 0 ? acc[acc.length - 1] : 0;
         acc.push(lastTime + lap);
@@ -40,29 +41,27 @@ const RecordVisualization: React.FC<RecordVisualizationProps> = ({ durationMs, l
             <View style={[styles.durationBar, { width: BAR_WIDTH }]}>
                 
                 {/* Map over cumulative laps to place the lap markers */}
-                {cumulativeLaps.map((lapCumulativeTime, index) => {
-                    // Ignore the final cumulative time if it equals the duration (last lap marker)
-                    if (lapCumulativeTime === durationMs) return null;
-                    
-                    const positionPercent = calculatePosition(lapCumulativeTime);
-
-                    return (
+                {cumulativeLaps
+                    .map((lapCumulativeTime, originalIndex) => {
+                        // Clamp and compute position percent
+                        const clamped = Math.max(0, Math.min(lapCumulativeTime, durationMs));
+                        const positionPercent = calculatePosition(clamped);
+                        return { positionPercent, originalIndex };
+                    })
+                    .filter(({ positionPercent }) => !isNaN(positionPercent) && positionPercent > 0 && positionPercent <= 100)
+                    .map(({ positionPercent, originalIndex }, idx) => (
                         <View
-                            key={`lap-${index}`}
+                            key={`lap-${idx}`}
                             style={[
                                 styles.lapMarker,
                                 {
-                                    // Use 'left' for positioning
-                                    left: `${positionPercent}%`, 
-                                    // Optionally highlight the first lap marker
-                                    backgroundColor: index === 0 ? '#FF3B30' : '#000', 
-                                    opacity: 0.7,
+                                    left: `${positionPercent}%`,
+                                    backgroundColor: originalIndex === bestLapIndex ? '#34C759' : (idx === 0 ? '#FF3B30' : '#000'),
+                                    opacity: originalIndex === bestLapIndex ? 1 : 0.9,
                                 }
                             ]}
-                        >
-                        </View>
-                    );
-                })}
+                        />
+                    ))}
             </View>
         </View>
     );

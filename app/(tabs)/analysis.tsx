@@ -64,7 +64,7 @@ export default function AnalysisScreen() {
 
     // --- Render Components ---
     const renderRecordItem = (record: TimerRecord) => (
-        <View style={styles.recordItem}>
+        <View key={record.id} style={styles.recordItem}>
             <View style={styles.recordDetails}>
                 <Text style={styles.recordTime}>
                     Total Time: {formatTime(record.durationMs)}
@@ -81,7 +81,26 @@ export default function AnalysisScreen() {
             <RecordVisualization 
                 durationMs={record.durationMs}
                 lapTimes={record.laps}
+                bestLapIndex={record.bestLapIndex}
             />
+            
+            {/* Lap details */}
+            {record.laps.length > 0 && (
+                <View style={styles.lapDetailsContainer}>
+                    <Text style={styles.lapDetailsTitle}>Laps:</Text>
+                    {record.laps.map((lapTime, idx) => (
+                        <Text 
+                            key={`lap-${idx}`}
+                            style={[
+                                styles.lapDetailText,
+                                record.bestLapIndex === idx && styles.bestLapText
+                            ]}
+                        >
+                            Lap {idx + 1}: {formatTime(lapTime)}{record.bestLapIndex === idx ? ' (Best Lap)' : ''}
+                        </Text>
+                    ))}
+                </View>
+            )}
 
             {/* 2. CRUD Controls */}
             <View style={styles.recordActions}>
@@ -100,9 +119,58 @@ export default function AnalysisScreen() {
         const recordsInGroup = groupedRecords[categoryName];
         if (!recordsInGroup || recordsInGroup.length === 0) return null;
 
+        const category = categories.find(c => c.name === categoryName);
+        // Default to 'asap' if timerType is not set (for backward compatibility)
+        const timerType = category?.timerType || 'asap';
+        const hasGoal = category && category.goalMs !== null && category.goalMs > 0;
+        const currentPB = category?.personalBestMs;
+        let goalProgress: number | null = null;
+        if (hasGoal && currentPB && category) {
+            if (timerType === 'asap') {
+                // For ASAP: goal is to be faster (lower time), progress = goal / PB
+                // If PB < goal, you've exceeded the goal (progress > 100%)
+                goalProgress = Math.min(100, (category.goalMs! / currentPB) * 100);
+            } else {
+                // For Endurance: goal is to be longer (higher time), progress = PB / goal
+                // If PB > goal, you've exceeded the goal (progress > 100%)
+                goalProgress = Math.min(100, (currentPB / category.goalMs!) * 100);
+            }
+        }
+
         return (
             <View style={styles.categoryGroup}>
-                <Text style={styles.categoryHeader}>{categoryName} History ({recordsInGroup.length})</Text>
+                <View style={styles.categoryHeaderContainer}>
+                    <Text style={styles.categoryHeader}>{categoryName} History ({recordsInGroup.length})</Text>
+                    {category && (
+                        <View style={styles.categoryStats}>
+                            {category.personalBestMs && (
+                                <Text style={styles.categoryPB}>
+                                    PB: {formatTime(category.personalBestMs)}
+                                </Text>
+                            )}
+                            {hasGoal && (
+                                <Text style={styles.categoryGoal}>
+                                    Goal: {formatTime(category.goalMs!)}
+                                </Text>
+                            )}
+                            {hasGoal && goalProgress !== null && (
+                                <View style={styles.progressContainer}>
+                                    <View style={styles.progressBar}>
+                                        <View style={[styles.progressFill, { width: `${goalProgress}%` }]} />
+                                    </View>
+                                    <Text style={styles.progressText}>
+                                        {goalProgress.toFixed(0)}% {timerType === 'asap' ? 'to goal' : 'of goal'}
+                                    </Text>
+                                </View>
+                            )}
+                            {timerType && (
+                                <Text style={styles.timerTypeText}>
+                                    {timerType === 'endurance' ? '🏃 Endurance' : '⚡ ASAP'}
+                                </Text>
+                            )}
+                        </View>
+                    )}
+                </View>
                 {/* Sort records (e.g., by date descending) */}
                 {recordsInGroup
                     .slice()
@@ -159,14 +227,58 @@ const styles = StyleSheet.create({
         marginBottom: 25,
         paddingHorizontal: 15,
     },
+    categoryHeaderContainer: {
+        marginBottom: 10,
+    },
     categoryHeader: {
         fontSize: 20,
         fontWeight: '700',
-        marginBottom: 10,
+        marginBottom: 8,
         color: '#007AFF',
         borderBottomWidth: 2,
         borderBottomColor: '#007AFF20',
         paddingBottom: 5,
+    },
+    categoryStats: {
+        marginTop: 8,
+        padding: 10,
+        backgroundColor: '#f9f9f9',
+        borderRadius: 8,
+    },
+    categoryPB: {
+        fontSize: 14,
+        color: '#666',
+        marginBottom: 4,
+    },
+    categoryGoal: {
+        fontSize: 14,
+        color: '#007AFF',
+        fontWeight: '600',
+        marginBottom: 4,
+    },
+    timerTypeText: {
+        fontSize: 12,
+        color: '#999',
+        marginTop: 4,
+    },
+    progressContainer: {
+        marginTop: 8,
+    },
+    progressBar: {
+        height: 8,
+        backgroundColor: '#e0e0e0',
+        borderRadius: 4,
+        overflow: 'hidden',
+        marginBottom: 4,
+    },
+    progressFill: {
+        height: '100%',
+        backgroundColor: '#34C759',
+        borderRadius: 4,
+    },
+    progressText: {
+        fontSize: 12,
+        color: '#666',
     },
     recordItem: {
         backgroundColor: '#fff',
@@ -194,6 +306,28 @@ const styles = StyleSheet.create({
     recordDate: {
         fontSize: 14,
         color: '#666',
+    },
+    lapDetailsContainer: {
+        backgroundColor: '#f5f5f5',
+        borderRadius: 6,
+        padding: 10,
+        marginVertical: 10,
+    },
+    lapDetailsTitle: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#333',
+        marginBottom: 8,
+    },
+    lapDetailText: {
+        fontSize: 12,
+        color: '#666',
+        marginVertical: 4,
+    },
+    bestLapText: {
+        color: '#34C759',  // Green for best lap
+        fontWeight: '600',
+        fontSize: 13,
     },
     recordActions: {
         flexDirection: 'row',

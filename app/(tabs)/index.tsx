@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -9,7 +9,7 @@ import {
   Alert,
   Modal 
 } from 'react-native';
-import useTimerStore, { TimerCategory, TimerRecord } from '../../store/useTimerStore';
+import useTimerStore, { TimerCategory, TimerRecord, TimerType } from '../../store/useTimerStore';
 import TimerControls from '../../components/TimerControls';
 import TimerDisplay from '../../components/TimerDisplay';
 import { Stack } from 'expo-router';
@@ -29,7 +29,6 @@ export default function TimerScreen() {
     isRunning, 
     timeElapsed, 
     currentCategory, 
-    currentLaps, 
     categories,
     records,
     startTimer, 
@@ -43,6 +42,8 @@ export default function TimerScreen() {
     deleteCategory,
     deleteRecord,
     transferRecord,
+    setCategoryGoal,
+    setCategoryTimerType,
   } = useTimerStore();
 
   // Local state for UI
@@ -56,23 +57,70 @@ export default function TimerScreen() {
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [recordToTransfer, setRecordToTransfer] = useState<TimerRecord | null>(null);
   const [transferSearchQuery, setTransferSearchQuery] = useState('');
+  const [showCategorySettings, setShowCategorySettings] = useState(false);
+  const [categoryForSettings, setCategoryForSettings] = useState<TimerCategory | null>(null);
+  const [goalHours, setGoalHours] = useState('0');
+  const [goalMinutes, setGoalMinutes] = useState('0');
+  const [goalSeconds, setGoalSeconds] = useState('0');
+  const [displayTime, setDisplayTime] = useState(0);
+
+  const timeElapsedRef = useRef(timeElapsed);
+  const startTimeRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    timeElapsedRef.current = timeElapsed;
+  }, [timeElapsed]);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | null = null;
 
     if (isRunning) {
-        const startTime = Date.now() - timeElapsed;
+        // Set start time only once when timer starts
+        if (startTimeRef.current === null) {
+            startTimeRef.current = Date.now() - timeElapsedRef.current;
+        }
+        
         interval = setInterval(() => {
-            useTimerStore.setState({ timeElapsed: Date.now() - startTime });
-        }, 10);
-    } 
+            const elapsed = Date.now() - startTimeRef.current!;
+            timeElapsedRef.current = elapsed;
+            // Only update display state - NO store updates during timer tick
+            setDisplayTime(elapsed);
+        }, 30);
+    } else {
+        // When pausing, sync the ref value to the store once
+        if (timeElapsedRef.current > 0) {
+            useTimerStore.setState({ timeElapsed: timeElapsedRef.current });
+        }
+        // Reset start time when timer stops
+        startTimeRef.current = null;
+    }
 
     return () => {
         if (interval !== null) {
             clearInterval(interval);
         }
     };
-  }, [isRunning, timeElapsed]);
+  }, [isRunning]);
+
+  // Sync categoryForSettings with store when categories change
+  useEffect(() => {
+    if (categoryForSettings) {
+      const updatedCategory = categories.find(c => c.id === categoryForSettings.id);
+      if (updatedCategory && updatedCategory !== categoryForSettings) {
+        setCategoryForSettings(updatedCategory);
+        // Update goal inputs if goal changed
+        if (updatedCategory.goalMs) {
+          const totalSeconds = Math.floor(updatedCategory.goalMs / 1000);
+          const hours = Math.floor(totalSeconds / 3600);
+          const minutes = Math.floor((totalSeconds % 3600) / 60);
+          const seconds = totalSeconds % 60;
+          setGoalHours(hours.toString());
+          setGoalMinutes(minutes.toString());
+          setGoalSeconds(seconds.toString());
+        }
+      }
+    }
+  }, [categories, categoryForSettings]);
 
   // Handle pause - just pause, don't save
   const handlePause = () => {
@@ -209,13 +257,62 @@ export default function TimerScreen() {
     return records.filter(r => r.categoryId === categoryId);
   };
 
+  // Handle category settings
+  const handleOpenCategorySettings = (category: TimerCategory) => {
+    setCategoryForSettings(category);
+    if (category.goalMs) {
+      const totalSeconds = Math.floor(category.goalMs / 1000);
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      setGoalHours(hours.toString());
+      setGoalMinutes(minutes.toString());
+      setGoalSeconds(seconds.toString());
+    } else {
+      setGoalHours('0');
+      setGoalMinutes('0');
+      setGoalSeconds('0');
+    }
+    setShowCategorySettings(true);
+  };
+
+  const handleSaveGoal = () => {
+    if (categoryForSettings) {
+      const hours = parseInt(goalHours) || 0;
+      const minutes = parseInt(goalMinutes) || 0;
+      const seconds = parseInt(goalSeconds) || 0;
+      const totalMs = (hours * 3600 + minutes * 60 + seconds) * 1000;
+      setCategoryGoal(categoryForSettings.id, totalMs > 0 ? totalMs : null);
+      // Update local state with the updated category from store
+      const updatedCategory = categories.find(c => c.id === categoryForSettings.id);
+      if (updatedCategory) {
+        setCategoryForSettings(updatedCategory);
+      }
+      Alert.alert('Success', 'Goal updated!');
+    }
+  };
+
+  const handleSetTimerType = (timerType: TimerType) => {
+    if (categoryForSettings) {
+      setCategoryTimerType(categoryForSettings.id, timerType);
+      // Update local state with the updated category from store
+      setTimeout(() => {
+        const updatedCategory = categories.find(c => c.id === categoryForSettings.id);
+        if (updatedCategory) {
+          setCategoryForSettings(updatedCategory);
+        }
+      }, 100);
+      Alert.alert('Success', `Timer type set to ${timerType === 'asap' ? 'ASAP' : 'Endurance'}`);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: 'Timer' }} />
       
       {/* Timer Display */}
       <TimerDisplay 
-        timeString={formatTime(timeElapsed)} 
+        timeString={formatTime(displayTime)} 
         categoryName={currentCategory?.name || 'Timer'}
       />
       
@@ -232,7 +329,7 @@ export default function TimerScreen() {
       {/* Timer Controls */}
       <TimerControls 
         isRunning={isRunning} 
-        timeElapsed={timeElapsed}
+        timeElapsed={displayTime}
         onStart={() => startTimer(currentCategory)} 
         onPause={handlePause}
         onStop={handleStop}
@@ -297,7 +394,7 @@ export default function TimerScreen() {
                   ) : categories.length > 0 ? (
                     <View style={styles.noResultsContainer}>
                       <Text style={styles.noResultsText}>
-                        No categories found. Will create new category "{categorySearchQuery}"
+                        No categories found. Will create new category &quot;{categorySearchQuery}&quot;
                       </Text>
                     </View>
                   ) : null}
@@ -386,7 +483,7 @@ export default function TimerScreen() {
                   ) : (
                     <View style={styles.noResultsContainer}>
                       <Text style={styles.noResultsText}>
-                        No categories found matching "{transferSearchQuery}"
+                        No categories found matching &quot;{transferSearchQuery}&quot;
                       </Text>
                     </View>
                   )}
@@ -403,6 +500,140 @@ export default function TimerScreen() {
                 }}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Category Settings Modal */}
+      <Modal
+        visible={showCategorySettings}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          setShowCategorySettings(false);
+          setCategoryForSettings(null);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Category Settings</Text>
+            {categoryForSettings && (() => {
+              // Get the latest category from store to ensure we have current data
+              const currentCategory = categories.find(c => c.id === categoryForSettings.id) || categoryForSettings;
+              return (
+                <>
+                  <Text style={styles.modalSubtitle}>{currentCategory.name}</Text>
+                  
+                  <ScrollView 
+                    style={styles.modalScrollView}
+                    contentContainerStyle={styles.modalScrollContent}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={true}
+                  >
+                    {/* Timer Type Selection */}
+                    <View style={styles.settingsSection}>
+                      <Text style={styles.settingsLabel}>Timer Type</Text>
+                      <View style={styles.timerTypeButtons}>
+                        <TouchableOpacity
+                          style={[
+                            styles.timerTypeButton,
+                            (currentCategory.timerType || 'asap') === 'asap' && styles.timerTypeButtonActive
+                          ]}
+                          onPress={() => handleSetTimerType('asap')}
+                        >
+                          <Text style={[
+                            styles.timerTypeButtonText,
+                            (currentCategory.timerType || 'asap') === 'asap' && styles.timerTypeButtonTextActive
+                          ]}>
+                            ⚡ ASAP (Fastest Wins)
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[
+                            styles.timerTypeButton,
+                            (currentCategory.timerType || 'asap') === 'endurance' && styles.timerTypeButtonActive
+                          ]}
+                          onPress={() => handleSetTimerType('endurance')}
+                        >
+                          <Text style={[
+                            styles.timerTypeButtonText,
+                            (currentCategory.timerType || 'asap') === 'endurance' && styles.timerTypeButtonTextActive
+                          ]}>
+                            🏃 Endurance (Longest Wins)
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+
+                    {/* Goal Setting */}
+                    <View style={styles.settingsSection}>
+                      <Text style={styles.settingsLabel}>Goal Time</Text>
+                      <View style={styles.goalInputContainer}>
+                        <View style={styles.goalInputGroup}>
+                          <Text style={styles.goalInputLabel}>Hours</Text>
+                          <TextInput
+                            style={styles.goalInput}
+                            value={goalHours}
+                            onChangeText={setGoalHours}
+                            keyboardType="numeric"
+                            placeholder="0"
+                          />
+                        </View>
+                        <View style={styles.goalInputGroup}>
+                          <Text style={styles.goalInputLabel}>Minutes</Text>
+                          <TextInput
+                            style={styles.goalInput}
+                            value={goalMinutes}
+                            onChangeText={setGoalMinutes}
+                            keyboardType="numeric"
+                            placeholder="0"
+                          />
+                        </View>
+                        <View style={styles.goalInputGroup}>
+                          <Text style={styles.goalInputLabel}>Seconds</Text>
+                          <TextInput
+                            style={styles.goalInput}
+                            value={goalSeconds}
+                            onChangeText={setGoalSeconds}
+                            keyboardType="numeric"
+                            placeholder="0"
+                          />
+                        </View>
+                      </View>
+                      <TouchableOpacity
+                        style={[styles.modalButton, styles.saveButton, { marginTop: 10 }]}
+                        onPress={handleSaveGoal}
+                      >
+                        <Text style={styles.saveButtonText}>Set Goal</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.modalButton, styles.cancelButton, { marginTop: 8 }]}
+                        onPress={() => {
+                          if (categoryForSettings) {
+                            setCategoryGoal(categoryForSettings.id, null);
+                            setShowCategorySettings(false);
+                            setCategoryForSettings(null);
+                          }
+                        }}
+                      >
+                        <Text style={styles.cancelButtonText}>Clear Goal</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </ScrollView>
+                </>
+              );
+            })()}
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => {
+                  setShowCategorySettings(false);
+                  setCategoryForSettings(null);
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Close</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -498,17 +729,33 @@ export default function TimerScreen() {
                         ]}>
                           {category.name}
                         </Text>
-                        {category.personalBestMs && (
-                          <Text style={styles.categoryPB}>
-                            PB: {formatTime(category.personalBestMs)}
+                        <View style={styles.categoryInfo}>
+                          {category.personalBestMs && (
+                            <Text style={styles.categoryPB}>
+                              PB: {formatTime(category.personalBestMs)}
+                            </Text>
+                          )}
+                          {category.goalMs && (
+                            <Text style={styles.categoryGoal}>
+                              Goal: {formatTime(category.goalMs)}
+                            </Text>
+                          )}
+                          <Text style={styles.timerTypeBadge}>
+                            {category.timerType === 'endurance' ? '🏃 Endurance' : '⚡ ASAP'}
                           </Text>
-                        )}
-                        <Text style={styles.recordCount}>
-                          {categoryRecords.length} record{categoryRecords.length !== 1 ? 's' : ''}
-                        </Text>
+                          <Text style={styles.recordCount}>
+                            {categoryRecords.length} record{categoryRecords.length !== 1 ? 's' : ''}
+                          </Text>
+                        </View>
                       </View>
                     </TouchableOpacity>
                     <View style={styles.categoryActions}>
+                      <TouchableOpacity 
+                        style={styles.iconButton}
+                        onPress={() => handleOpenCategorySettings(category)}
+                      >
+                        <Text style={styles.iconButtonText}>⚙</Text>
+                      </TouchableOpacity>
                       <TouchableOpacity 
                         style={styles.iconButton}
                         onPress={() => handleStartEdit(category)}
@@ -694,6 +941,9 @@ const styles = StyleSheet.create({
   categoryNameContainer: {
     flex: 1,
   },
+  categoryInfo: {
+    marginTop: 4,
+  },
   categoryName: {
     fontSize: 18,
     fontWeight: '600',
@@ -706,6 +956,17 @@ const styles = StyleSheet.create({
   categoryPB: {
     fontSize: 14,
     color: '#666',
+    marginBottom: 2,
+  },
+  categoryGoal: {
+    fontSize: 14,
+    color: '#007AFF',
+    marginBottom: 2,
+    fontWeight: '600',
+  },
+  timerTypeBadge: {
+    fontSize: 12,
+    color: '#999',
     marginBottom: 2,
   },
   recordCount: {
@@ -795,9 +1056,18 @@ const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 24,
     width: '80%',
     maxWidth: 400,
+    maxHeight: '80%',
+    padding: 24,
+    paddingBottom: 16,
+  },
+  modalScrollView: {
+    maxHeight: 400,
+    marginVertical: 10,
+  },
+  modalScrollContent: {
+    paddingBottom: 10,
   },
   modalTitle: {
     fontSize: 20,
@@ -888,5 +1158,59 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  settingsSection: {
+    marginBottom: 20,
+  },
+  settingsLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 10,
+  },
+  timerTypeButtons: {
+    gap: 10,
+  },
+  timerTypeButton: {
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#ddd',
+    backgroundColor: '#f9f9f9',
+  },
+  timerTypeButtonActive: {
+    borderColor: '#007AFF',
+    backgroundColor: '#E6F0FF',
+  },
+  timerTypeButtonText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+  },
+  timerTypeButtonTextActive: {
+    color: '#007AFF',
+    fontWeight: '600',
+  },
+  goalInputContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  goalInputGroup: {
+    flex: 1,
+  },
+  goalInputLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 5,
+    textAlign: 'center',
+  },
+  goalInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 6,
+    padding: 10,
+    fontSize: 16,
+    textAlign: 'center',
   },
 });
