@@ -7,7 +7,8 @@ import {
   StyleSheet, 
   TextInput, 
   Alert,
-  Modal 
+  Modal,
+  ImageBackground 
 } from 'react-native';
 import useTimerStore, { TimerCategory, TimerRecord, TimerType } from '../../store/useTimerStore';
 import TimerControls from '../../components/TimerControls';
@@ -31,6 +32,9 @@ export default function TimerScreen() {
     currentCategory, 
     categories,
     records,
+    isDarkMode,
+    fontSizeMultiplier,
+    backgroundImageUri,
     startTimer, 
     pauseTimer, 
     resetTimer, 
@@ -307,29 +311,43 @@ export default function TimerScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDarkMode && styles.darkContainer]}>
+      {backgroundImageUri && (
+        <ImageBackground
+          source={{ uri: backgroundImageUri }}
+          style={StyleSheet.absoluteFillObject}
+          blurRadius={3}
+        />
+      )}
       <Stack.Screen options={{ title: 'Timer' }} />
       
-      {/* Timer Display */}
-      <TimerDisplay 
-        timeString={formatTime(displayTime)} 
-        categoryName={currentCategory?.name || 'Timer'}
-      />
-      
-      {/* Personal Best Display */}
-      {currentCategory && currentCategory.personalBestMs && (
-        <View style={styles.pbContainer}>
-          <Text style={styles.pbLabel}>Personal Best:</Text>
-          <Text style={styles.pbTime}>
-            {formatTime(currentCategory.personalBestMs)}
-          </Text>
-        </View>
-      )}
+      {/* Timer Header with Background */}
+      <View style={[styles.timerHeader, isDarkMode && styles.darkTimerHeader]}>
+        {/* Timer Display */}
+        <TimerDisplay 
+          timeString={formatTime(displayTime)} 
+          categoryName={currentCategory?.name || 'Timer'}
+          isDarkMode={isDarkMode}
+          fontSizeMultiplier={fontSizeMultiplier}
+        />
+        
+        {/* Personal Best Display */}
+        {currentCategory && currentCategory.personalBestMs && (
+          <View style={styles.pbContainer}>
+            <Text style={[styles.pbLabel, isDarkMode && styles.darkPbLabel]}>Personal Best:</Text>
+            <Text style={styles.pbTime}>
+              {formatTime(currentCategory.personalBestMs)}
+            </Text>
+          </View>
+        )}
+      </View>
 
       {/* Timer Controls */}
       <TimerControls 
         isRunning={isRunning} 
         timeElapsed={displayTime}
+        isDarkMode={isDarkMode}
+        fontSizeMultiplier={fontSizeMultiplier}
         onStart={() => startTimer(currentCategory)} 
         onPause={handlePause}
         onStop={handleStop}
@@ -349,9 +367,9 @@ export default function TimerScreen() {
         }}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Save Timer</Text>
-            <Text style={styles.modalSubtitle}>
+          <View style={[styles.modalContent, isDarkMode && styles.darkModalContent]}>
+            <Text style={[styles.modalTitle, isDarkMode && styles.darkModalTitle]}>Save Timer</Text>
+            <Text style={[styles.modalSubtitle, isDarkMode && styles.darkModalSubtitle]}>
               Time: {formatTime(timeElapsed)}
             </Text>
             <View style={styles.searchContainer}>
@@ -434,14 +452,14 @@ export default function TimerScreen() {
         }}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Transfer Record</Text>
+          <View style={[styles.modalContent, isDarkMode && styles.darkModalContent]}>
+            <Text style={[styles.modalTitle, isDarkMode && styles.darkModalTitle]}>Transfer Record</Text>
             {recordToTransfer && (
               <>
-                <Text style={styles.modalSubtitle}>
+                <Text style={[styles.modalSubtitle, isDarkMode && styles.darkModalSubtitle]}>
                   Time: {formatTime(recordToTransfer.durationMs)}
                 </Text>
-                <Text style={styles.modalSubtitle}>
+                <Text style={[styles.modalSubtitle, isDarkMode && styles.darkModalSubtitle]}>
                   From: {recordToTransfer.categoryName}
                 </Text>
               </>
@@ -517,14 +535,14 @@ export default function TimerScreen() {
         }}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Category Settings</Text>
+          <View style={[styles.modalContent, isDarkMode && styles.darkModalContent]}>
+            <Text style={[styles.modalTitle, isDarkMode && styles.darkModalTitle]}>Category Settings</Text>
             {categoryForSettings && (() => {
               // Get the latest category from store to ensure we have current data
               const currentCategory = categories.find(c => c.id === categoryForSettings.id) || categoryForSettings;
               return (
                 <>
-                  <Text style={styles.modalSubtitle}>{currentCategory.name}</Text>
+                  <Text style={[styles.modalSubtitle, isDarkMode && styles.darkModalSubtitle]}>{currentCategory.name}</Text>
                   
                   <ScrollView 
                     style={styles.modalScrollView}
@@ -842,6 +860,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  darkContainer: {
+    backgroundColor: '#121212',
+  },
+  timerHeader: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    paddingTop: 10,
+    paddingBottom: 10,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  darkTimerHeader: {
+    backgroundColor: 'rgba(30, 30, 30, 0.98)',
+    borderBottomColor: '#444',
+  },
   pbContainer: {
     marginTop: 10,
     marginBottom: 10,
@@ -851,6 +884,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     fontWeight: '500',
+  },
+  darkPbLabel: {
+    color: '#AAA',
   },
   pbTime: {
     fontSize: 20,
@@ -1212,5 +1248,14 @@ const styles = StyleSheet.create({
     padding: 10,
     fontSize: 16,
     textAlign: 'center',
+  },
+  darkModalContent: {
+    backgroundColor: '#1E1E1E',
+  },
+  darkModalTitle: {
+    color: '#FAFAFA',
+  },
+  darkModalSubtitle: {
+    color: '#CCC',
   },
 });

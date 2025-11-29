@@ -4,12 +4,26 @@ import { View, Text, StyleSheet } from 'react-native';
 interface TimerDisplayProps {
   timeString: string;
   categoryName: string;
+  isDarkMode?: boolean;
+  fontSizeMultiplier?: number;
 }
-const TimerDisplay: React.FC<TimerDisplayProps> = ({ timeString, categoryName }) => {
+const TimerDisplay: React.FC<TimerDisplayProps> = ({ 
+  timeString, 
+  categoryName, 
+  isDarkMode = false,
+  fontSizeMultiplier = 1.0 
+}) => {
+  const categoryColor = isDarkMode ? '#E0E0E0' : '#333';
+  const timeColor = isDarkMode ? '#FAFAFA' : '#000';
+
   return (
     <View style={styles.container}>
-      <Text style={styles.category}>{categoryName}</Text>
-      <Text style={styles.time}>{timeString}</Text>
+      <Text style={[styles.category, { color: categoryColor, fontSize: 20 * fontSizeMultiplier }]}>
+        {categoryName}
+      </Text>
+      <Text style={[styles.time, { color: timeColor, fontSize: 72 * fontSizeMultiplier }]}>
+        {timeString}
+      </Text>
     </View>
   );
 };
@@ -20,16 +34,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   category: {
-    fontSize: 20,
-    color: '#333',
-    marginBottom: 10,
     fontWeight: '600',
+    marginBottom: 10,
   },
   time: {
-    fontSize: 72,
     fontWeight: '200',
     letterSpacing: 2,
-    color: '#000',
   },
 });
 

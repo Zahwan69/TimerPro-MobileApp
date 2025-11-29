@@ -1,10 +1,13 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, Text } from 'react-native';
+import AnimatedPressable from './AnimatedPressable';
 
 interface TimerControlsProps {
   isRunning: boolean;
   timeElapsed: number;
   isDisabled: boolean;
+  isDarkMode?: boolean;
+  fontSizeMultiplier?: number;
   onStart: () => void;
   onPause: () => void;
   onStop: () => void;
@@ -16,6 +19,8 @@ const TimerControls: React.FC<TimerControlsProps> = ({
   isRunning, 
   timeElapsed, 
   isDisabled,
+  isDarkMode = false,
+  fontSizeMultiplier = 1.0,
   onStart, 
   onPause, 
   onStop,
@@ -26,7 +31,7 @@ const TimerControls: React.FC<TimerControlsProps> = ({
   if (isDisabled) {
     return (
       <View style={styles.controlContainer}>
-        <Text style={styles.disabledText}>Select a Category to Start</Text>
+        <Text style={[styles.disabledText, isDarkMode && styles.darkDisabledText, { fontSize: 16 * fontSizeMultiplier }]}>Select a Category to Start</Text>
       </View>
     );
   }
@@ -37,34 +42,30 @@ const TimerControls: React.FC<TimerControlsProps> = ({
   return (
     <View style={styles.controlContainer}>
       {/* Left Button: Reset or Lap */}
-      <TouchableOpacity 
-        style={[styles.button, styles.secondaryButton]} 
-        onPress={showLapButton ? onLap : onReset}
-        disabled={isRunning && timeElapsed === 0}
-      >
-        <Text style={styles.secondaryButtonText}>
-          {showLapButton ? 'Lap' : 'Reset'}
-        </Text>
-      </TouchableOpacity>
-      
+      <AnimatedPressable onPress={showLapButton ? onLap : onReset}>
+        <View style={[styles.button, styles.secondaryButton]}>
+          <Text style={[styles.secondaryButtonText, { fontSize: 16 * fontSizeMultiplier }]}>
+            {showLapButton ? 'Lap' : 'Reset'}
+          </Text>
+        </View>
+      </AnimatedPressable>
+
       {/* Center Button: Start/Pause */}
-      <TouchableOpacity 
-        style={[styles.button, isRunning ? styles.pauseButton : styles.startButton]} 
-        onPress={isRunning ? onPause : onStart}
-      >
-        <Text style={styles.primaryButtonText}>
-          {isRunning ? 'Pause' : (timeElapsed > 0 ? 'Resume' : 'Start')}
-        </Text>
-      </TouchableOpacity>
+      <AnimatedPressable onPress={isRunning ? onPause : onStart}>
+        <View style={[styles.button, isRunning ? styles.pauseButton : styles.startButton]}> 
+          <Text style={[styles.primaryButtonText, { fontSize: 16 * fontSizeMultiplier }]}>
+            {isRunning ? 'Pause' : (timeElapsed > 0 ? 'Resume' : 'Start')}
+          </Text>
+        </View>
+      </AnimatedPressable>
 
       {/* Right Button: Stop (when paused) or placeholder */}
       {showStopButton ? (
-        <TouchableOpacity 
-          style={[styles.button, styles.stopButton]} 
-          onPress={onStop}
-        >
-          <Text style={styles.primaryButtonText}>Stop</Text>
-        </TouchableOpacity>
+        <AnimatedPressable onPress={onStop}>
+          <View style={[styles.button, styles.stopButton]}> 
+            <Text style={[styles.primaryButtonText, { fontSize: 16 * fontSizeMultiplier }]}>Stop</Text>
+          </View>
+        </AnimatedPressable>
       ) : (
         <View style={[styles.button, styles.placeholderButton]} />
       )}
@@ -118,6 +119,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#999',
     padding: 20,
+  },
+  darkDisabledText: {
+    color: '#666',
   }
 });
 

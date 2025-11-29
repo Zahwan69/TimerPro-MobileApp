@@ -1,5 +1,6 @@
 import { forwardRef } from 'react';
-import { Text, TouchableOpacity, TouchableOpacityProps, View } from 'react-native';
+import { Text, View } from 'react-native';
+import AnimatedPressable from './AnimatedPressable';
 
 type ButtonProps = {
   title: string;
@@ -7,12 +8,11 @@ type ButtonProps = {
 
 export const Button = forwardRef<View, ButtonProps>(({ title, ...touchableProps }, ref) => {
   return (
-    <TouchableOpacity
-      ref={ref}
-      {...touchableProps}
-      className={`${styles.button} ${touchableProps.className}`}>
-      <Text className={styles.buttonText}>{title}</Text>
-    </TouchableOpacity>
+    <AnimatedPressable onPress={touchableProps.onPress}>
+      <View style={{ paddingVertical: 12, paddingHorizontal: 18, borderRadius: 28, backgroundColor: '#4F46E5', alignItems: 'center' }}>
+        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>{title}</Text>
+      </View>
+    </AnimatedPressable>
   );
 });
 

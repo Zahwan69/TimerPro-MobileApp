@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Modal, View, Text, Button, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { Modal, View, Text, StyleSheet, ScrollView } from 'react-native';
+import AnimatedPressable from './AnimatedPressable';
+import { Button as RNButton } from 'react-native';
 import useTimerStore, { TimerRecord, TimerCategory } from '../store/useTimerStore';
 
 interface TransferModalProps {
@@ -47,30 +49,34 @@ const TransferRecordModal: React.FC<TransferModalProps> = ({
           
           <ScrollView style={styles.categoryList}>
             {categories.map((category) => (
-              <TouchableOpacity
+              <AnimatedPressable
                 key={category.id}
                 style={[
                   styles.categoryItem,
                   selectedCategoryId === category.id && styles.selectedItem,
                 ]}
                 onPress={() => setSelectedCategoryId(category.id)}
-                disabled={category.id === record.categoryId} // Cannot transfer to the same category
+                // disabled prop handled by style/logic: visually use selected state
               >
                 <Text style={styles.categoryText}>
                   {category.name}
                   {category.id === record.categoryId && ' (Current)'}
                 </Text>
-              </TouchableOpacity>
+              </AnimatedPressable>
             ))}
           </ScrollView>
 
           <View style={styles.buttonContainer}>
-            <Button title="Cancel" onPress={onClose} color="#FF3B30" />
-            <Button 
-              title="Confirm Transfer" 
-              onPress={handleTransfer} 
-              disabled={selectedCategoryId === record.categoryId}
-            />
+            <AnimatedPressable onPress={onClose}>
+              <View style={[styles.actionButton, styles.dangerButton]}>
+                <Text style={styles.actionText}>Cancel</Text>
+              </View>
+            </AnimatedPressable>
+            <AnimatedPressable onPress={handleTransfer}>
+              <View style={[styles.actionButton, selectedCategoryId === record.categoryId && styles.disabledAction]}>
+                <Text style={styles.actionText}>Confirm Transfer</Text>
+              </View>
+            </AnimatedPressable>
           </View>
         </View>
       </View>
@@ -144,6 +150,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     width: '100%',
     marginTop: 20,
+  }
+  ,
+  actionButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    backgroundColor: '#007AFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dangerButton: {
+    backgroundColor: '#FF3B30',
+  },
+  actionText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  disabledAction: {
+    opacity: 0.5,
   }
 });
 

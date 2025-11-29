@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ImageBackground } from 'react-native';
 import { Stack } from 'expo-router';
 import useTimerStore, { TimerRecord,  } from '../../store/useTimerStore';
-import RecordVisualization from '../../components/RecordVisualization'; // To be created next
-import TransferRecordModal from '../../components/TransferRecordModal'; // To be created next
+import RecordVisualization from '../../components/RecordVisualization';
+import TransferRecordModal from '../../components/TransferRecordModal';
 
 // Utility function (from index.tsx, defined in lib/utils.ts later)
 const formatTime = (ms: number) => {
@@ -19,7 +19,9 @@ export default function AnalysisScreen() {
     const records = useTimerStore(state => state.records);
     const categories = useTimerStore(state => state.categories);
     const deleteRecord = useTimerStore(state => state.deleteRecord);
-    // Note: The action to update/transfer a record will be added to the store later.
+    const isDarkMode = useTimerStore(state => state.isDarkMode);
+    const fontSizeMultiplier = useTimerStore(state => state.fontSizeMultiplier);
+    const backgroundImageUri = useTimerStore(state => state.backgroundImageUri);
 
     // Local State for Modals/Filtering
     const [isTransferModalVisible, setIsTransferModalVisible] = useState(false);
@@ -64,13 +66,13 @@ export default function AnalysisScreen() {
 
     // --- Render Components ---
     const renderRecordItem = (record: TimerRecord) => (
-        <View key={record.id} style={styles.recordItem}>
+        <View key={record.id} style={[styles.recordItem, isDarkMode && styles.darkRecordItem]}>
             <View style={styles.recordDetails}>
-                <Text style={styles.recordTime}>
+                <Text style={[styles.recordTime, isDarkMode && styles.darkRecordTime, { fontSize: 18 * fontSizeMultiplier }]}>
                     Total Time: {formatTime(record.durationMs)}
                     {record.isPersonalBest && <Text style={styles.pbText}> (PB!)</Text>}
                 </Text>
-                <Text style={styles.recordDate}>
+                <Text style={[styles.recordDate, isDarkMode && styles.darkRecordDate, { fontSize: 14 * fontSizeMultiplier }]}>
                     Date: {new Date(record.startTime).toLocaleDateString()}
                     {' at '}
                     {new Date(record.startTime).toLocaleTimeString()}
@@ -86,14 +88,16 @@ export default function AnalysisScreen() {
             
             {/* Lap details */}
             {record.laps.length > 0 && (
-                <View style={styles.lapDetailsContainer}>
-                    <Text style={styles.lapDetailsTitle}>Laps:</Text>
+                <View style={[styles.lapDetailsContainer, isDarkMode && styles.darkLapDetailsContainer]}>
+                    <Text style={[styles.lapDetailsTitle, isDarkMode && styles.darkLapDetailsTitle, { fontSize: 13 * fontSizeMultiplier }]}>Laps:</Text>
                     {record.laps.map((lapTime, idx) => (
                         <Text 
                             key={`lap-${idx}`}
                             style={[
                                 styles.lapDetailText,
-                                record.bestLapIndex === idx && styles.bestLapText
+                                isDarkMode && styles.darkLapDetailText,
+                                record.bestLapIndex === idx && styles.bestLapText,
+                                { fontSize: 12 * fontSizeMultiplier }
                             ]}
                         >
                             Lap {idx + 1}: {formatTime(lapTime)}{record.bestLapIndex === idx ? ' (Best Lap)' : ''}
@@ -140,16 +144,16 @@ export default function AnalysisScreen() {
         return (
             <View style={styles.categoryGroup}>
                 <View style={styles.categoryHeaderContainer}>
-                    <Text style={styles.categoryHeader}>{categoryName} History ({recordsInGroup.length})</Text>
+                    <Text style={[styles.categoryHeader, isDarkMode && styles.darkCategoryHeader, { fontSize: 20 * fontSizeMultiplier }]}>{categoryName} History ({recordsInGroup.length})</Text>
                     {category && (
-                        <View style={styles.categoryStats}>
+                        <View style={[styles.categoryStats, isDarkMode && styles.darkCategoryStats]}>
                             {category.personalBestMs && (
-                                <Text style={styles.categoryPB}>
+                                <Text style={[styles.categoryPB, isDarkMode && styles.darkCategoryPB, { fontSize: 14 * fontSizeMultiplier }]}>
                                     PB: {formatTime(category.personalBestMs)}
                                 </Text>
                             )}
                             {hasGoal && (
-                                <Text style={styles.categoryGoal}>
+                                <Text style={[styles.categoryGoal, isDarkMode && styles.darkCategoryGoal, { fontSize: 14 * fontSizeMultiplier }]}>
                                     Goal: {formatTime(category.goalMs!)}
                                 </Text>
                             )}
@@ -158,13 +162,13 @@ export default function AnalysisScreen() {
                                     <View style={styles.progressBar}>
                                         <View style={[styles.progressFill, { width: `${goalProgress}%` }]} />
                                     </View>
-                                    <Text style={styles.progressText}>
+                                    <Text style={[styles.progressText, isDarkMode && styles.darkProgressText, { fontSize: 12 * fontSizeMultiplier }]}>
                                         {goalProgress.toFixed(0)}% {timerType === 'asap' ? 'to goal' : 'of goal'}
                                     </Text>
                                 </View>
                             )}
                             {timerType && (
-                                <Text style={styles.timerTypeText}>
+                                <Text style={[styles.timerTypeText, isDarkMode && styles.darkTimerTypeText, { fontSize: 12 * fontSizeMultiplier }]}>
                                     {timerType === 'endurance' ? '🏃 Endurance' : '⚡ ASAP'}
                                 </Text>
                             )}
@@ -182,16 +186,25 @@ export default function AnalysisScreen() {
     
     // --- Main JSX Return ---
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, isDarkMode && styles.darkContainer]}>
+            {backgroundImageUri && (
+                <ImageBackground
+                    source={{ uri: backgroundImageUri }}
+                    style={StyleSheet.absoluteFillObject}
+                    blurRadius={3}
+                />
+            )}
             <Stack.Screen options={{ title: 'Timer Analysis' }} />
             
-            <Text style={styles.pageTitle}>Activity Log & Analysis</Text>
+            <View style={[styles.analysisHeader, isDarkMode && styles.darkAnalysisHeader]}>
+                <Text style={[styles.pageTitle, isDarkMode && styles.darkPageTitle, { fontSize: 26 * fontSizeMultiplier }]}>Activity Log & Analysis</Text>
+            </View>
 
             {records.length === 0 ? (
-                <Text style={styles.emptyText}>No timer records found yet. Start a timer on the main screen!</Text>
+                <Text style={[styles.emptyText, isDarkMode && styles.darkEmptyText]}>No timer records found yet. Start a timer on the main screen!</Text>
             ) : (
                 <FlatList
-                    data={Object.keys(groupedRecords)} // Data is the array of category names
+                    data={Object.keys(groupedRecords)}
                     keyExtractor={(item) => item}
                     renderItem={renderCategoryGroup}
                     contentContainerStyle={{ paddingVertical: 10 }}
@@ -217,11 +230,21 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#f9f9f9',
     },
+    analysisHeader: {
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        borderBottomWidth: 1,
+        borderBottomColor: '#E0E0E0',
+    },
+    darkAnalysisHeader: {
+        backgroundColor: 'rgba(30, 30, 30, 0.98)',
+        borderBottomColor: '#444',
+    },
     pageTitle: {
         fontSize: 26,
         fontWeight: 'bold',
         padding: 20,
         paddingBottom: 10,
+        color: '#333',
     },
     categoryGroup: {
         marginBottom: 25,
@@ -353,5 +376,52 @@ const styles = StyleSheet.create({
         padding: 40,
         fontSize: 16,
         color: '#999',
+    },
+    darkContainer: {
+        backgroundColor: '#121212',
+    },
+    darkPageTitle: {
+        color: '#FAFAFA',
+    },
+    darkEmptyText: {
+        color: '#CCC',
+    },
+    darkRecordItem: {
+        backgroundColor: '#1E1E1E',
+    },
+    darkRecordTime: {
+        color: '#FAFAFA',
+    },
+    darkRecordDate: {
+        color: '#AAA',
+    },
+    darkLapDetailsContainer: {
+        backgroundColor: '#2A2A2A',
+    },
+    darkLapDetailsTitle: {
+        color: '#E0E0E0',
+    },
+    darkLapDetailText: {
+        color: '#BBB',
+    },
+    darkCategoryHeader: {
+        color: '#81B0FF',
+        borderBottomColor: '#81B0FF40',
+    },
+    darkCategoryStats: {
+        backgroundColor: '#2A2A2A',
+        borderColor: '#444',
+    },
+    darkCategoryPB: {
+        color: '#AAA',
+    },
+    darkCategoryGoal: {
+        color: '#81B0FF',
+    },
+    darkProgressText: {
+        color: '#AAA',
+    },
+    darkTimerTypeText: {
+        color: '#888',
     }
 });
