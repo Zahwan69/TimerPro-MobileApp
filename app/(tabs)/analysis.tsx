@@ -5,7 +5,6 @@ import useTimerStore, { TimerRecord,  } from '../../store/useTimerStore';
 import RecordVisualization from '../../components/RecordVisualization';
 import TransferRecordModal from '../../components/TransferRecordModal';
 
-// Utility function (from index.tsx, defined in lib/utils.ts later)
 const formatTime = (ms: number) => {
     const totalSeconds = Math.floor(ms / 1000);
     const minutes = Math.floor(totalSeconds / 60);
@@ -15,7 +14,6 @@ const formatTime = (ms: number) => {
 };
 
 export default function AnalysisScreen() {
-    // Zustand State and Actions
     const records = useTimerStore(state => state.records);
     const categories = useTimerStore(state => state.categories);
     const deleteRecord = useTimerStore(state => state.deleteRecord);
@@ -23,13 +21,10 @@ export default function AnalysisScreen() {
     const fontSizeMultiplier = useTimerStore(state => state.fontSizeMultiplier);
     const backgroundImageUri = useTimerStore(state => state.backgroundImageUri);
 
-    // Local State for Modals/Filtering
     const [isTransferModalVisible, setIsTransferModalVisible] = useState(false);
     const [recordToTransfer, setRecordToTransfer] = useState<TimerRecord | null>(null);
 
-    // --- Data Grouping/Sorting ---
     const groupedRecords = useMemo(() => {
-        // Group records by category name for display
         return records.reduce((acc, record) => {
             const categoryName = record.categoryName;
             if (!acc[categoryName]) {
@@ -40,8 +35,6 @@ export default function AnalysisScreen() {
         }, {} as Record<string, TimerRecord[]>);
     }, [records]);
 
-    // --- Handlers for CRUD/Transfer ---
-    
     const handleDelete = (recordId: string) => {
         Alert.alert(
             "Confirm Deletion",
@@ -61,10 +54,7 @@ export default function AnalysisScreen() {
         setRecordToTransfer(record);
         setIsTransferModalVisible(true);
     };
-    
-    // The handleTransferComplete logic will be in the TransferRecordModal
 
-    // --- Render Components ---
     const renderRecordItem = (record: TimerRecord) => (
         <View key={record.id} style={[styles.recordItem, isDarkMode && styles.darkRecordItem]}>
             <View style={styles.recordDetails}>
@@ -79,14 +69,12 @@ export default function AnalysisScreen() {
                 </Text>
             </View>
 
-            {/* 1. Visualization */}
             <RecordVisualization 
                 durationMs={record.durationMs}
                 lapTimes={record.laps}
                 bestLapIndex={record.bestLapIndex}
             />
             
-            {/* Lap details */}
             {record.laps.length > 0 && (
                 <View style={[styles.lapDetailsContainer, isDarkMode && styles.darkLapDetailsContainer]}>
                     <Text style={[styles.lapDetailsTitle, isDarkMode && styles.darkLapDetailsTitle, { fontSize: 13 * fontSizeMultiplier }]}>Laps:</Text>
@@ -106,9 +94,7 @@ export default function AnalysisScreen() {
                 </View>
             )}
 
-            {/* 2. CRUD Controls */}
             <View style={styles.recordActions}>
-                {/* Note: Edit functionality for time itself is complex, so we focus on Transfer/Delete */}
                 <TouchableOpacity onPress={() => handleTransferStart(record)} style={styles.actionButton}>
                     <Text style={styles.actionText}>Transfer</Text>
                 </TouchableOpacity>
@@ -124,19 +110,14 @@ export default function AnalysisScreen() {
         if (!recordsInGroup || recordsInGroup.length === 0) return null;
 
         const category = categories.find(c => c.name === categoryName);
-        // Default to 'asap' if timerType is not set (for backward compatibility)
         const timerType = category?.timerType || 'asap';
         const hasGoal = category && category.goalMs !== null && category.goalMs > 0;
         const currentPB = category?.personalBestMs;
         let goalProgress: number | null = null;
         if (hasGoal && currentPB && category) {
             if (timerType === 'asap') {
-                // For ASAP: goal is to be faster (lower time), progress = goal / PB
-                // If PB < goal, you've exceeded the goal (progress > 100%)
                 goalProgress = Math.min(100, (category.goalMs! / currentPB) * 100);
             } else {
-                // For Endurance: goal is to be longer (higher time), progress = PB / goal
-                // If PB > goal, you've exceeded the goal (progress > 100%)
                 goalProgress = Math.min(100, (currentPB / category.goalMs!) * 100);
             }
         }
@@ -175,16 +156,14 @@ export default function AnalysisScreen() {
                         </View>
                     )}
                 </View>
-                {/* Sort records (e.g., by date descending) */}
                 {recordsInGroup
                     .slice()
-                    .sort((a, b) => b.startTime - a.startTime) // Newest first
+                    .sort((a, b) => b.startTime - a.startTime)
                     .map(renderRecordItem)}
             </View>
         );
     };
     
-    // --- Main JSX Return ---
     return (
         <View style={[styles.container, isDarkMode && styles.darkContainer]}>
             {backgroundImageUri && (
@@ -211,7 +190,6 @@ export default function AnalysisScreen() {
                 />
             )}
 
-            {/* Transfer Modal */}
             {recordToTransfer && (
                 <TransferRecordModal
                     isVisible={isTransferModalVisible}
@@ -224,7 +202,6 @@ export default function AnalysisScreen() {
     );
 }
 
-// --- Basic Styling ---
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -323,7 +300,7 @@ const styles = StyleSheet.create({
         color: '#333',
     },
     pbText: {
-        color: '#FF9500', // Gold/Orange for PB
+        color: '#FF9500',
         fontWeight: '800',
     },
     recordDate: {
@@ -348,7 +325,7 @@ const styles = StyleSheet.create({
         marginVertical: 4,
     },
     bestLapText: {
-        color: '#34C759',  // Green for best lap
+        color: '#34C759',
         fontWeight: '600',
         fontSize: 13,
     },
@@ -369,7 +346,6 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     deleteButton: {
-        // Optional styling for delete button wrapper
     },
     emptyText: {
         textAlign: 'center',

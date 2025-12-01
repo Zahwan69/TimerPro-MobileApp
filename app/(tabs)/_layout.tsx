@@ -1,5 +1,3 @@
-// app/(tabs)/_layout.tsx
-
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { FontAwesome5, MaterialIcons, Feather } from '@expo/vector-icons';

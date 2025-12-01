@@ -41,7 +41,6 @@ const TimerControls: React.FC<TimerControlsProps> = ({
 
   return (
     <View style={styles.controlContainer}>
-      {/* Left Button: Reset or Lap */}
       <AnimatedPressable onPress={showLapButton ? onLap : onReset}>
         <View style={[styles.button, styles.secondaryButton]}>
           <Text style={[styles.secondaryButtonText, { fontSize: 16 * fontSizeMultiplier }]}>

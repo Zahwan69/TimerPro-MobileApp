@@ -1,16 +1,9 @@
-// store/useTimerStore.ts (Corrected and Completed)
-
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware'; // Required for Persistence (15 marks)
+import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-// Assuming you have moved your interfaces to types/index.ts:
-// import { TimerState, TimerCategory, TimerRecord, UserProfile } from '../types';
-
-// NOTE: Since the full project structure is not reflected here, I will use the types defined above 
-// and add the missing ones directly below for compilation purposes.
 
 export interface TimerRecord {
-  id: string; // Unique ID for the record
+  id: string;
   categoryId: string;
   categoryName: string;
   startTime: number; 
@@ -18,19 +11,19 @@ export interface TimerRecord {
   durationMs: number; 
   laps: number[];    
   isPersonalBest: boolean;
-  bestLapIndex?: number | null;  // Index of lap that is a PB lap
+  bestLapIndex?: number | null;
   notes?: string;
 }
 
-export type TimerType = 'asap' | 'endurance'; // ASAP = shortest is best, Endurance = longest is best
+export type TimerType = 'asap' | 'endurance';
 
 export interface TimerCategory {
   id: string;
   name: string;
   personalBestMs: number | null; 
-  bestLapMs: number | null;  // Best single lap time in this category
-  goalMs: number | null; // Goal time in milliseconds
-  timerType: TimerType; // 'asap' for fastest time, 'endurance' for longest time
+  bestLapMs: number | null;
+  goalMs: number | null;
+  timerType: TimerType;
   createdAt: number;
 }
 
@@ -39,7 +32,6 @@ export interface UserProfile {
   isProfileSetup: boolean; 
 }
 
-// 📌 CORRECTED TimerState Interface (Must include all defined actions)
 export interface TimerState {
   categories: TimerCategory[];
   records: TimerRecord[];
@@ -49,30 +41,27 @@ export interface TimerState {
   currentCategory: TimerCategory | null;
   currentLaps: number[];
   
-  // Settings & Profile
   userProfile: UserProfile;
   isDarkMode: boolean;
   fontSizeMultiplier: number;
   backgroundImageUri: string | null; 
 
-  // Actions (Full List of required actions)
   addCategory: (name: string) => void;
-  editCategory: (id: string, newName: string) => void; // 👈 Explicit Types
+  editCategory: (id: string, newName: string) => void;
   deleteCategory: (id: string) => void;
-  setCurrentCategory: (category: TimerCategory) => void; // 👈 Explicit Types
-  setCategoryGoal: (id: string, goalMs: number | null) => void; // Set goal for category
-  setCategoryTimerType: (id: string, timerType: TimerType) => void; // Set timer type for category
+  setCurrentCategory: (category: TimerCategory) => void;
+  setCategoryGoal: (id: string, goalMs: number | null) => void;
+  setCategoryTimerType: (id: string, timerType: TimerType) => void;
   
-  startTimer: (category: TimerCategory | null) => void; // 👈 Explicit Types
+  startTimer: (category: TimerCategory | null) => void;
   pauseTimer: () => void;
   addLap: () => void;
   resetTimer: () => void;
-  saveTimer: (categoryName: string) => void; // Save timer with category name without resetting
+  saveTimer: (categoryName: string) => void;
 
-  deleteRecord: (id: string) => void; // 👈 Explicit Types
+  deleteRecord: (id: string) => void;
   transferRecord: (recordId: string, newCategory: TimerCategory) => void;
   
-  // Settings Actions (Need to be added for Settings Screen functionality)
   setDarkMode: (isDark: boolean) => void;
   setFontSizeMultiplier: (multiplier: number) => void;
   setBackgroundImageUri: (uri: string | null) => void;
@@ -80,31 +69,24 @@ export interface TimerState {
 }
 
 
-// Helper function to check if a time is a new personal best based on timer type
 const isNewPersonalBest = (currentTime: number, existingPB: number | null, timerType: TimerType): boolean => {
   if (existingPB === null) return true;
   if (timerType === 'asap') {
-    // For ASAP: shorter time is better
     return currentTime < existingPB;
   } else {
-    // For Endurance: longer time is better
     return currentTime > existingPB;
   }
 };
 
-// Helper function to find the best time from records based on timer type
 const findBestTime = (records: TimerRecord[], timerType: TimerType): number | null => {
   if (records.length === 0) return null;
   if (timerType === 'asap') {
-    // For ASAP: find minimum (shortest) time
     return records.reduce((min, record) => (record.durationMs < min || min === null) ? record.durationMs : min, records[0].durationMs);
   } else {
-    // For Endurance: find maximum (longest) time
     return records.reduce((max, record) => (record.durationMs > max || max === null) ? record.durationMs : max, records[0].durationMs);
   }
 };
 
-// Helper function to find the best single lap time from all laps in records
 const findBestLapTime = (records: TimerRecord[], timerType: TimerType): number | null => {
   let allLaps: number[] = [];
   records.forEach(record => {
@@ -113,10 +95,8 @@ const findBestLapTime = (records: TimerRecord[], timerType: TimerType): number |
   
   if (allLaps.length === 0) return null;
   if (timerType === 'asap') {
-    // For ASAP: find minimum (fastest) lap
     return Math.min(...allLaps);
   } else {
-    // For Endurance: find maximum (longest) lap
     return Math.max(...allLaps);
   }
 };
@@ -124,7 +104,6 @@ const findBestLapTime = (records: TimerRecord[], timerType: TimerType): number |
 const useTimerStore = create<TimerState>()(
   persist(
     (set, get) => ({
-      // --- Initial State (Matching TimerState) ---
       categories: [{ id: 'default', name: 'Default Activity', personalBestMs: null, bestLapMs: null, goalMs: null, timerType: 'asap', createdAt: Date.now() }],
       records: [],
       isRunning: false,
@@ -137,7 +116,6 @@ const useTimerStore = create<TimerState>()(
       fontSizeMultiplier: 1.0,
       backgroundImageUri: null,
 
-      // --- Category CRUD Actions ---
       addCategory: (name) => set((state) => ({
         categories: [...state.categories, { 
           id: Date.now().toString(), 
@@ -165,14 +143,12 @@ const useTimerStore = create<TimerState>()(
         categories: state.categories.map(cat => cat.id === id ? { ...cat, goalMs } : cat),
       })),
       setCategoryTimerType: (id, timerType) => set((state) => {
-        // When changing timer type, recalculate PB based on new type
         const category = state.categories.find(c => c.id === id);
         if (!category) return state;
         
         const recordsInCat = state.records.filter(r => r.categoryId === id);
         const newPB = findBestTime(recordsInCat, timerType);
         
-        // Update PB flags on records
         const updatedRecords = state.records.map(record => {
           if (record.categoryId === id && newPB !== null && record.durationMs === newPB) {
             return { ...record, isPersonalBest: true };
@@ -189,10 +165,7 @@ const useTimerStore = create<TimerState>()(
           records: updatedRecords,
         };
       }),
-
-
-      // --- Timer Control Actions ---
-        startTimer: (category) => {
+      startTimer: (category) => {
           if (!get().isRunning) {
             const currentElapsed = get().timeElapsed || 0;
             const startTs = Date.now() - currentElapsed;
@@ -220,12 +193,10 @@ const useTimerStore = create<TimerState>()(
       saveTimer: (categoryName) => {
           const state = get();
           if (state.timeElapsed > 0 && !state.isRunning) {
-              // Find or create category
               let category = state.categories.find(cat => cat.name.toLowerCase() === categoryName.trim().toLowerCase());
               let updatedCategories = state.categories;
               
               if (!category) {
-                  // Create new category with default values
                   category = { 
                     id: Date.now().toString(), 
                     name: categoryName.trim(), 
@@ -238,13 +209,12 @@ const useTimerStore = create<TimerState>()(
                   updatedCategories = [...state.categories, category];
               }
               
-              // Check each lap for PB status
               let bestLapIndexInRecord: number | null = null;
               if (state.currentLaps.length > 0) {
                   for (let i = 0; i < state.currentLaps.length; i++) {
                       if (isNewPersonalBest(state.currentLaps[i], category.bestLapMs, category.timerType)) {
                           bestLapIndexInRecord = i;
-                          break;  // Mark the first lap that beats the PB
+                          break;
                       }
                   }
               }
@@ -261,16 +231,13 @@ const useTimerStore = create<TimerState>()(
                   bestLapIndex: bestLapIndexInRecord,
               };
               
-              // Update category PBs (both overall and best lap)
               let newBestLapMs = category.bestLapMs;
               if (bestLapIndexInRecord !== null) {
                   newBestLapMs = state.currentLaps[bestLapIndexInRecord];
               }
               
-              // Update PB if needed (based on timer type)
               if (isNewPersonalBest(state.timeElapsed, category.personalBestMs, category.timerType)) {
                   finalRecord.isPersonalBest = true;
-                  // Remove PB flag from all other records in this category
                   const updatedRecordsWithoutPB = state.records.map(rec =>
                       rec.categoryId === category.id 
                           ? { ...rec, isPersonalBest: false }
@@ -282,7 +249,6 @@ const useTimerStore = create<TimerState>()(
                   set({
                       categories: updatedCategories, 
                       records: [...updatedRecordsWithoutPB, finalRecord],
-                      // Reset timer back to zero after saving but keep the selected category
                       timeElapsed: 0,
                       currentLaps: [],
                       isRunning: false,
@@ -291,7 +257,6 @@ const useTimerStore = create<TimerState>()(
                   });
                   return;
               } else if (newBestLapMs !== category.bestLapMs) {
-                  // Update best lap even if overall PB wasn't beaten
                   updatedCategories = updatedCategories.map(cat => 
                       cat.id === category.id ? { ...cat, bestLapMs: newBestLapMs } : cat
                   );
@@ -300,7 +265,6 @@ const useTimerStore = create<TimerState>()(
                 set({
                   categories: updatedCategories, 
                   records: [...state.records, finalRecord],
-                  // Reset timer back to zero after saving but keep the selected category
                   timeElapsed: 0,
                   currentLaps: [],
                   isRunning: false,
@@ -313,7 +277,6 @@ const useTimerStore = create<TimerState>()(
           set({ isRunning: false, timeElapsed: 0, currentLaps: [], currentCategory: null, startTimestamp: null });
         },
 
-      // --- Record CRUD / Update Actions ---
       deleteRecord: (id) => set((state) => {
           const oldRecord = state.records.find(r => r.id === id);
           const updatedRecords = state.records.filter(record => record.id !== id);
@@ -326,7 +289,6 @@ const useTimerStore = create<TimerState>()(
               }
               return cat;
           });
-          // Recalculate PB flags for all records
           const finalRecords: TimerRecord[] = updatedRecords.map(record => {
             const category = updatedCategories.find(c => c.id === record.categoryId);
             let bestLapIdx: number | null = null;
@@ -348,14 +310,12 @@ const useTimerStore = create<TimerState>()(
         const oldRecord = state.records.find(r => r.id === recordId);
         const oldCategoryId = oldRecord?.categoryId;
         
-        // 1. Update the record itself 
         const updatedRecords = state.records.map(record => 
           record.id === recordId 
             ? { ...record, categoryId: newCategory.id, categoryName: newCategory.name, isPersonalBest: false, bestLapIndex: null } 
             : record
         );
         
-        // 2. Update category PBs based on timer type
         const updatedCategories = state.categories.map(cat => {
           if (cat.id === newCategory.id || (oldCategoryId && cat.id === oldCategoryId)) {
             const recordsInCat = updatedRecords.filter(r => r.categoryId === cat.id);
@@ -366,7 +326,6 @@ const useTimerStore = create<TimerState>()(
           return cat;
         });
 
-        // 3. Set the new PB flags based on timer type
         const finalRecords: TimerRecord[] = updatedRecords.map(record => {
           const category = updatedCategories.find(c => c.id === record.categoryId);
           let bestLapIdx: number | null = null;
@@ -385,7 +344,6 @@ const useTimerStore = create<TimerState>()(
         return { records: finalRecords, categories: updatedCategories };
       }),
 
-      // --- Settings Actions ---
       setUserProfile: (name) => set({ userProfile: { name: name.trim(), isProfileSetup: true } }),
       setDarkMode: (isDark) => set({ isDarkMode: isDark }),
       setFontSizeMultiplier: (multiplier) => set({ fontSizeMultiplier: multiplier }),

@@ -50,7 +50,6 @@ export default function TimerScreen() {
     setCategoryTimerType,
   } = useTimerStore();
 
-  // Local state for UI
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveCategoryName, setSaveCategoryName] = useState('');
   const [categorySearchQuery, setCategorySearchQuery] = useState('');
@@ -79,7 +78,6 @@ export default function TimerScreen() {
     let interval: ReturnType<typeof setInterval> | null = null;
 
     if (isRunning) {
-        // Set start time only once when timer starts
         if (startTimeRef.current === null) {
             startTimeRef.current = Date.now() - timeElapsedRef.current;
         }
@@ -87,15 +85,12 @@ export default function TimerScreen() {
         interval = setInterval(() => {
             const elapsed = Date.now() - startTimeRef.current!;
             timeElapsedRef.current = elapsed;
-            // Only update display state - NO store updates during timer tick
             setDisplayTime(elapsed);
         }, 30);
     } else {
-        // When pausing, sync the ref value to the store once
         if (timeElapsedRef.current > 0) {
             useTimerStore.setState({ timeElapsed: timeElapsedRef.current });
         }
-        // Reset start time when timer stops
         startTimeRef.current = null;
     }
 
@@ -106,13 +101,11 @@ export default function TimerScreen() {
     };
   }, [isRunning]);
 
-  // Sync categoryForSettings with store when categories change
   useEffect(() => {
     if (categoryForSettings) {
       const updatedCategory = categories.find(c => c.id === categoryForSettings.id);
       if (updatedCategory && updatedCategory !== categoryForSettings) {
         setCategoryForSettings(updatedCategory);
-        // Update goal inputs if goal changed
         if (updatedCategory.goalMs) {
           const totalSeconds = Math.floor(updatedCategory.goalMs / 1000);
           const hours = Math.floor(totalSeconds / 3600);
@@ -126,12 +119,10 @@ export default function TimerScreen() {
     }
   }, [categories, categoryForSettings]);
 
-  // Handle pause - just pause, don't save
   const handlePause = () => {
     pauseTimer();
   };
 
-  // Handle stop - stop timer and show save dialog
   const handleStop = () => {
     pauseTimer();
     if (timeElapsed > 0) {
@@ -141,18 +132,15 @@ export default function TimerScreen() {
     }
   };
 
-  // Filter categories based on search query
   const filteredCategories = categories.filter(cat =>
     cat.name.toLowerCase().includes(categorySearchQuery.toLowerCase())
   );
 
-  // Handle category selection from list
   const handleSelectCategory = (categoryName: string) => {
     setSaveCategoryName(categoryName);
     setCategorySearchQuery(categoryName);
   };
 
-  // Handle transfer record
   const handleStartTransfer = (record: TimerRecord) => {
     setRecordToTransfer(record);
     setTransferSearchQuery('');
@@ -171,14 +159,12 @@ export default function TimerScreen() {
     }
   };
 
-  // Filter categories for transfer (exclude current category)
   const filteredTransferCategories = categories.filter(cat => {
     const matchesSearch = cat.name.toLowerCase().includes(transferSearchQuery.toLowerCase());
     const isNotCurrentCategory = recordToTransfer ? cat.id !== recordToTransfer.categoryId : true;
     return matchesSearch && isNotCurrentCategory;
   });
 
-  // Handle save timer
   const handleSaveTimer = () => {
     if (saveCategoryName.trim()) {
       saveTimer(saveCategoryName.trim());
@@ -191,11 +177,9 @@ export default function TimerScreen() {
     }
   };
 
-  // Handle reset
   const handleReset = () => {
     if (!isRunning) {
       if (timeElapsed > 0) {
-        // Show confirmation if there's time to lose
         Alert.alert(
           'Reset Timer',
           'Are you sure you want to reset? This will discard the current time.',
@@ -212,14 +196,12 @@ export default function TimerScreen() {
           ]
         );
       } else {
-        // If timer is at 0, just reset without confirmation
         resetTimer();
         setShowSaveDialog(false);
       }
     }
   };
 
-  // Category CRUD handlers
   const handleAddCategory = () => {
     if (newCategoryName.trim()) {
       addCategory(newCategoryName.trim());
@@ -256,12 +238,10 @@ export default function TimerScreen() {
     );
   };
 
-  // Get records grouped by category
   const getRecordsByCategory = (categoryId: string) => {
     return records.filter(r => r.categoryId === categoryId);
   };
 
-  // Handle category settings
   const handleOpenCategorySettings = (category: TimerCategory) => {
     setCategoryForSettings(category);
     if (category.goalMs) {
@@ -287,7 +267,6 @@ export default function TimerScreen() {
       const seconds = parseInt(goalSeconds) || 0;
       const totalMs = (hours * 3600 + minutes * 60 + seconds) * 1000;
       setCategoryGoal(categoryForSettings.id, totalMs > 0 ? totalMs : null);
-      // Update local state with the updated category from store
       const updatedCategory = categories.find(c => c.id === categoryForSettings.id);
       if (updatedCategory) {
         setCategoryForSettings(updatedCategory);
@@ -299,7 +278,6 @@ export default function TimerScreen() {
   const handleSetTimerType = (timerType: TimerType) => {
     if (categoryForSettings) {
       setCategoryTimerType(categoryForSettings.id, timerType);
-      // Update local state with the updated category from store
       setTimeout(() => {
         const updatedCategory = categories.find(c => c.id === categoryForSettings.id);
         if (updatedCategory) {
@@ -321,9 +299,7 @@ export default function TimerScreen() {
       )}
       <Stack.Screen options={{ title: 'Timer' }} />
       
-      {/* Timer Header with Background */}
       <View style={[styles.timerHeader, isDarkMode && styles.darkTimerHeader]}>
-        {/* Timer Display */}
         <TimerDisplay 
           timeString={formatTime(displayTime)} 
           categoryName={currentCategory?.name || 'Timer'}
@@ -331,7 +307,6 @@ export default function TimerScreen() {
           fontSizeMultiplier={fontSizeMultiplier}
         />
         
-        {/* Personal Best Display */}
         {currentCategory && currentCategory.personalBestMs && (
           <View style={styles.pbContainer}>
             <Text style={[styles.pbLabel, isDarkMode && styles.darkPbLabel]}>Personal Best:</Text>
@@ -342,7 +317,6 @@ export default function TimerScreen() {
         )}
       </View>
 
-      {/* Timer Controls */}
       <TimerControls 
         isRunning={isRunning} 
         timeElapsed={displayTime}
@@ -356,7 +330,6 @@ export default function TimerScreen() {
         isDisabled={false}
       />
 
-      {/* Save Timer Dialog */}
       <Modal
         visible={showSaveDialog}
         transparent={true}
@@ -385,7 +358,6 @@ export default function TimerScreen() {
                 autoComplete="off"
                 autoCorrect={false}
               />
-              {/* Searchable Category List - shows when typing */}
               {categorySearchQuery.length > 0 && (
                 <>
                   {filteredCategories.length > 0 ? (
@@ -440,7 +412,6 @@ export default function TimerScreen() {
         </View>
       </Modal>
 
-      {/* Transfer Record Modal */}
       <Modal
         visible={showTransferModal}
         transparent={true}
@@ -474,7 +445,6 @@ export default function TimerScreen() {
                 autoComplete="off"
                 autoCorrect={false}
               />
-              {/* Searchable Category List for Transfer - shows when typing */}
               {transferSearchQuery.length > 0 && (
                 <>
                   {filteredTransferCategories.length > 0 ? (
@@ -524,7 +494,6 @@ export default function TimerScreen() {
         </View>
       </Modal>
 
-      {/* Category Settings Modal */}
       <Modal
         visible={showCategorySettings}
         transparent={true}
@@ -538,7 +507,6 @@ export default function TimerScreen() {
           <View style={[styles.modalContent, isDarkMode && styles.darkModalContent]}>
             <Text style={[styles.modalTitle, isDarkMode && styles.darkModalTitle]}>Category Settings</Text>
             {categoryForSettings && (() => {
-              // Get the latest category from store to ensure we have current data
               const currentCategory = categories.find(c => c.id === categoryForSettings.id) || categoryForSettings;
               return (
                 <>
@@ -550,7 +518,6 @@ export default function TimerScreen() {
                     keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={true}
                   >
-                    {/* Timer Type Selection */}
                     <View style={styles.settingsSection}>
                       <Text style={styles.settingsLabel}>Timer Type</Text>
                       <View style={styles.timerTypeButtons}>
@@ -585,7 +552,6 @@ export default function TimerScreen() {
                       </View>
                     </View>
 
-                    {/* Goal Setting */}
                     <View style={styles.settingsSection}>
                       <Text style={styles.settingsLabel}>Goal Time</Text>
                       <View style={styles.goalInputContainer}>
@@ -658,9 +624,7 @@ export default function TimerScreen() {
         </View>
       </Modal>
 
-      {/* Categories and Timers List */}
       <ScrollView style={styles.listContainer} contentContainerStyle={styles.listContent}>
-        {/* Add Category Section */}
         <View style={styles.section}>
           <TouchableOpacity 
             style={styles.addCategoryButton}
@@ -701,14 +665,12 @@ export default function TimerScreen() {
           )}
         </View>
 
-        {/* Categories List */}
         {categories.map((category) => {
           const categoryRecords = getRecordsByCategory(category.id);
           const isEditing = editingCategoryId === category.id;
           
           return (
             <View key={category.id} style={styles.categoryCard}>
-              {/* Category Header */}
               <View style={styles.categoryHeader}>
                 {isEditing ? (
                   <View style={styles.editCategoryForm}>
@@ -791,13 +753,12 @@ export default function TimerScreen() {
                 )}
               </View>
 
-              {/* Records for this category */}
               {categoryRecords.length > 0 && (
                 <View style={styles.recordsContainer}>
                   {categoryRecords
                     .slice()
                     .sort((a, b) => b.startTime - a.startTime)
-                    .slice(0, 5) // Show last 5 records
+                    .slice(0, 5)
                     .map((record) => (
                       <View key={record.id} style={styles.recordItem}>
                         <View style={styles.recordInfo}>
