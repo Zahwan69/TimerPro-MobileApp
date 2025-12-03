@@ -74,6 +74,14 @@ export default function TimerScreen() {
     timeElapsedRef.current = timeElapsed;
   }, [timeElapsed]);
 
+  // Sync displayTime with timeElapsed when timer is not running
+  useEffect(() => {
+    if (!isRunning) {
+      setDisplayTime(timeElapsed);
+      timeElapsedRef.current = timeElapsed;
+    }
+  }, [timeElapsed, isRunning]);
+
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | null = null;
 
@@ -204,7 +212,18 @@ export default function TimerScreen() {
 
   const handleAddCategory = () => {
     if (newCategoryName.trim()) {
-      addCategory(newCategoryName.trim());
+      const trimmedName = newCategoryName.trim();
+      // Check for duplicate names (case-insensitive)
+      const isDuplicate = categories.some(
+        cat => cat.name.toLowerCase() === trimmedName.toLowerCase()
+      );
+      
+      if (isDuplicate) {
+        Alert.alert('Error', `A category with the name "${trimmedName}" already exists. Please choose a different name.`);
+        return;
+      }
+      
+      addCategory(trimmedName);
       setNewCategoryName('');
       setShowAddCategory(false);
     }
@@ -217,7 +236,18 @@ export default function TimerScreen() {
 
   const handleSaveEdit = () => {
     if (editingCategoryId && editingCategoryName.trim()) {
-      editCategory(editingCategoryId, editingCategoryName.trim());
+      const trimmedName = editingCategoryName.trim();
+      // Check for duplicate names (case-insensitive), excluding the current category being edited
+      const isDuplicate = categories.some(
+        cat => cat.id !== editingCategoryId && cat.name.toLowerCase() === trimmedName.toLowerCase()
+      );
+      
+      if (isDuplicate) {
+        Alert.alert('Error', `A category with the name "${trimmedName}" already exists. Please choose a different name.`);
+        return;
+      }
+      
+      editCategory(editingCategoryId, trimmedName);
       setEditingCategoryId(null);
       setEditingCategoryName('');
     }
@@ -519,17 +549,19 @@ export default function TimerScreen() {
                     showsVerticalScrollIndicator={true}
                   >
                     <View style={styles.settingsSection}>
-                      <Text style={styles.settingsLabel}>Timer Type</Text>
+                      <Text style={[styles.settingsLabel, isDarkMode && styles.darkSettingsLabel]}>Timer Type</Text>
                       <View style={styles.timerTypeButtons}>
                         <TouchableOpacity
                           style={[
                             styles.timerTypeButton,
+                            isDarkMode && styles.darkTimerTypeButton,
                             (currentCategory.timerType || 'asap') === 'asap' && styles.timerTypeButtonActive
                           ]}
                           onPress={() => handleSetTimerType('asap')}
                         >
                           <Text style={[
                             styles.timerTypeButtonText,
+                            isDarkMode && styles.darkTimerTypeButtonText,
                             (currentCategory.timerType || 'asap') === 'asap' && styles.timerTypeButtonTextActive
                           ]}>
                             ⚡ ASAP (Fastest Wins)
@@ -538,12 +570,14 @@ export default function TimerScreen() {
                         <TouchableOpacity
                           style={[
                             styles.timerTypeButton,
+                            isDarkMode && styles.darkTimerTypeButton,
                             (currentCategory.timerType || 'asap') === 'endurance' && styles.timerTypeButtonActive
                           ]}
                           onPress={() => handleSetTimerType('endurance')}
                         >
                           <Text style={[
                             styles.timerTypeButtonText,
+                            isDarkMode && styles.darkTimerTypeButtonText,
                             (currentCategory.timerType || 'asap') === 'endurance' && styles.timerTypeButtonTextActive
                           ]}>
                             🏃 Endurance (Longest Wins)
@@ -553,36 +587,39 @@ export default function TimerScreen() {
                     </View>
 
                     <View style={styles.settingsSection}>
-                      <Text style={styles.settingsLabel}>Goal Time</Text>
+                      <Text style={[styles.settingsLabel, isDarkMode && styles.darkSettingsLabel]}>Goal Time</Text>
                       <View style={styles.goalInputContainer}>
                         <View style={styles.goalInputGroup}>
-                          <Text style={styles.goalInputLabel}>Hours</Text>
+                          <Text style={[styles.goalInputLabel, isDarkMode && styles.darkGoalInputLabel]}>Hours</Text>
                           <TextInput
-                            style={styles.goalInput}
+                            style={[styles.goalInput, isDarkMode && styles.darkGoalInput]}
                             value={goalHours}
                             onChangeText={setGoalHours}
                             keyboardType="numeric"
                             placeholder="0"
+                            placeholderTextColor={isDarkMode ? '#666' : undefined}
                           />
                         </View>
                         <View style={styles.goalInputGroup}>
-                          <Text style={styles.goalInputLabel}>Minutes</Text>
+                          <Text style={[styles.goalInputLabel, isDarkMode && styles.darkGoalInputLabel]}>Minutes</Text>
                           <TextInput
-                            style={styles.goalInput}
+                            style={[styles.goalInput, isDarkMode && styles.darkGoalInput]}
                             value={goalMinutes}
                             onChangeText={setGoalMinutes}
                             keyboardType="numeric"
                             placeholder="0"
+                            placeholderTextColor={isDarkMode ? '#666' : undefined}
                           />
                         </View>
                         <View style={styles.goalInputGroup}>
-                          <Text style={styles.goalInputLabel}>Seconds</Text>
+                          <Text style={[styles.goalInputLabel, isDarkMode && styles.darkGoalInputLabel]}>Seconds</Text>
                           <TextInput
-                            style={styles.goalInput}
+                            style={[styles.goalInput, isDarkMode && styles.darkGoalInput]}
                             value={goalSeconds}
                             onChangeText={setGoalSeconds}
                             keyboardType="numeric"
                             placeholder="0"
+                            placeholderTextColor={isDarkMode ? '#666' : undefined}
                           />
                         </View>
                       </View>
@@ -1218,5 +1255,23 @@ const styles = StyleSheet.create({
   },
   darkModalSubtitle: {
     color: '#CCC',
+  },
+  darkSettingsLabel: {
+    color: '#FFFFFF',
+  },
+  darkTimerTypeButton: {
+    borderColor: '#444',
+    backgroundColor: '#2A2A2A',
+  },
+  darkTimerTypeButtonText: {
+    color: '#FFFFFF',
+  },
+  darkGoalInputLabel: {
+    color: '#FFFFFF',
+  },
+  darkGoalInput: {
+    borderColor: '#444',
+    backgroundColor: '#2A2A2A',
+    color: '#FFFFFF',
   },
 });

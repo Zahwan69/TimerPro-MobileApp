@@ -58,11 +58,11 @@ const TimerControls: React.FC<TimerControlsProps> = ({
         </View>
       </AnimatedPressable>
 
-      {/* Right Button: Stop (when paused) or placeholder */}
+      {/* Right Button:  (when paused) or placeholder */}
       {showStopButton ? (
         <AnimatedPressable onPress={onStop}>
           <View style={[styles.button, styles.stopButton]}> 
-            <Text style={[styles.primaryButtonText, { fontSize: 16 * fontSizeMultiplier }]}>Stop</Text>
+            <Text style={[styles.primaryButtonText, { fontSize: 16 * fontSizeMultiplier }]}>Save</Text>
           </View>
         </AnimatedPressable>
       ) : (
@@ -90,16 +90,16 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
   startButton: {
-    backgroundColor: '#34C759', // iOS Green
+    backgroundColor: '#228B22', // iOS Green
   },
   pauseButton: {
-    backgroundColor: '#FF9500', // iOS Orange
+    backgroundColor: '#FF8C00', // iOS Orange
   },
   stopButton: {
-    backgroundColor: '#FF3B30', // iOS Red
+    backgroundColor: '#FF8C00', // iOS Red
   },
   secondaryButton: {
-    backgroundColor: '#E5E5EA', // Light gray
+    backgroundColor: '#FF0000', // Light gray
   },
   placeholderButton: {
     backgroundColor: 'transparent',
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   secondaryButtonText: {
-    color: '#000',
+    color: 'white',
     fontSize: 18,
     fontWeight: '500',
   },

@@ -116,20 +116,46 @@ const useTimerStore = create<TimerState>()(
       fontSizeMultiplier: 1.0,
       backgroundImageUri: null,
 
-      addCategory: (name) => set((state) => ({
-        categories: [...state.categories, { 
-          id: Date.now().toString(), 
-          name: name.trim(), 
-          personalBestMs: null, 
-          bestLapMs: null,
-          goalMs: null,
-          timerType: 'asap',
-          createdAt: Date.now() 
-        }],
-      })),
-      editCategory: (id, newName) => set((state) => ({
-        categories: state.categories.map(cat => cat.id === id ? { ...cat, name: newName.trim() } : cat),
-      })),
+      addCategory: (name) => set((state) => {
+        const trimmedName = name.trim();
+        // Check for duplicate names (case-insensitive)
+        const isDuplicate = state.categories.some(
+          cat => cat.name.toLowerCase() === trimmedName.toLowerCase()
+        );
+        
+        // Return state unchanged if duplicate found
+        if (isDuplicate) {
+          return state;
+        }
+        
+        return {
+          categories: [...state.categories, { 
+            id: Date.now().toString(), 
+            name: trimmedName, 
+            personalBestMs: null, 
+            bestLapMs: null,
+            goalMs: null,
+            timerType: 'asap',
+            createdAt: Date.now() 
+          }],
+        };
+      }),
+      editCategory: (id, newName) => set((state) => {
+        const trimmedName = newName.trim();
+        // Check for duplicate names (case-insensitive), excluding the current category being edited
+        const isDuplicate = state.categories.some(
+          cat => cat.id !== id && cat.name.toLowerCase() === trimmedName.toLowerCase()
+        );
+        
+        // Return state unchanged if duplicate found
+        if (isDuplicate) {
+          return state;
+        }
+        
+        return {
+          categories: state.categories.map(cat => cat.id === id ? { ...cat, name: trimmedName } : cat),
+        };
+      }),
       deleteCategory: (id) => set((state) => {
         const remainingRecords = state.records.filter(record => record.categoryId !== id);
         return {

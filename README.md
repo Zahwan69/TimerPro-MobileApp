@@ -170,7 +170,7 @@ npm run build:prod
 - **AsyncStorage** (v2.2.0) - Persistent local storage
 
 ### UI & Styling
-- **NativeWind** (latest) - Tailwind CSS for React Native
+- **React Native StyleSheet** - Built-in styling solution for React Native components
 - **React Native Reanimated** (v4.1.1) - Smooth animations
 - **React Native Gesture Handler** (v2.28.0) - Touch gesture handling
 
