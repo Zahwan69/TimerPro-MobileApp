@@ -267,5 +267,6 @@ Sulaiman Zahwan Latheef - S2301159 - UWE ID: 23081518
 ## 🙏 Acknowledgments
 
 - Created with [create-expo-stack](https://github.com/danstepanov/create-expo-stack) - Expo project scaffolding tool
+- link to my Github Repo: https://github.com/Zahwan69/TimerPro-MobileApp
 - Inspired by Apple's Timer app design
 - Built with Expo and React Native community tools
